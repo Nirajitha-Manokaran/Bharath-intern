@@ -1,0 +1,43 @@
+import pandas as pd
+from surprise import Dataset, Reader, SVD
+from surprise.model_selection import train_test_split
+from surprise import accuracy
+
+# Load the dataset
+df = pd.read_csv('path/to/your/dataset.csv')
+
+# Define a Reader object
+reader = Reader(rating_scale=(1, 5))
+
+# Load the dataset into Surprise's format
+data = Dataset.load_from_df(df[['userId', 'movieId', 'rating']], reader)
+
+# Train-test split
+trainset, testset = train_test_split(data, test_size=0.25)
+
+# Use the SVD algorithm
+algo = SVD()
+
+# Train the algorithm on the trainset
+algo.fit(trainset)
+
+# Predict ratings for the testset
+predictions = algo.test(testset)
+
+# Evaluate the performance of the algorithm
+print('RMSE:', accuracy.rmse(predictions))
+
+# Function to get top-N recommendations for a user
+def get_top_n_recommendations(user_id, n=10):
+    all_movie_ids = df['movieId'].unique()
+    predictions = [algo.predict(user_id, movie_id) for movie_id in all_movie_ids]
+    predictions.sort(key=lambda x: x.est, reverse=True)
+    top_n_predictions = predictions[:n]
+    top_n_movie_ids = [pred.iid for pred in top_n_predictions]
+    top_n_ratings = [pred.est for pred in top_n_predictions]
+    return top_n_movie_ids, top_n_ratings
+
+# Example usage
+user_id = str(1)  # Example user_id
+top_n_movie_ids, top_n_ratings = get_top_n_recommendations(user_id, n=10)
+print("Top-N movie recommendations for user {}: {}".format(user_id, top_n_movie_ids))
